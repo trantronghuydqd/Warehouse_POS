@@ -123,6 +123,7 @@ Ghi chu:
 - Trong backend hien tai, so_luong_cu la ton toan he thong cua san pham (tong tat ca warehouse), khong phai ton rieng 1 chi nhanh.
 - last_purchase_cost duoc backend cap nhat bang unit_cost lan nhap gan nhat khi POSTED goods_receipt.
 - API Product khong cho sua truc tiep avg_cost qua request body.
+- Có thêm field delete_at cho các bảng master
 
 ### warehouse
 
