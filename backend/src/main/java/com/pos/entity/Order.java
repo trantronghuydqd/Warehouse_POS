@@ -6,8 +6,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.pos.enums.DocumentStatus;
 import com.pos.enums.PaymentMethod;
-import com.pos.enums.OrderStatus;
 import com.pos.enums.SalesChannel;
 
 @Entity
@@ -40,7 +40,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status;
+    private DocumentStatus status;
 
     @Column(name = "gross_amount", nullable = false)
     @Builder.Default

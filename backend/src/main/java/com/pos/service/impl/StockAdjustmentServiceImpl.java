@@ -38,6 +38,8 @@ public class StockAdjustmentServiceImpl implements StockAdjustmentService {
     @Override
     @Transactional
     public StockAdjustmentResponseDTO createAdjustment(CreateStockAdjustmentDto dto) {
+        validateItemList(dto.getItems());
+
         Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
                 .orElseThrow(() -> new RuntimeException("Warehouse not found"));
         Staff staff = staffRepository.findById(dto.getCreatedByStaffId())
@@ -81,9 +83,53 @@ public class StockAdjustmentServiceImpl implements StockAdjustmentService {
 
     @Override
     @Transactional
+    public StockAdjustmentResponseDTO updateDraftAdjustment(Long id, CreateStockAdjustmentDto dto) {
+        validateItemList(dto.getItems());
+
+        StockAdjustment adjust = getAdjustmentById(id);
+        if (adjust.getStatus() != DocumentStatus.DRAFT) {
+            throw new RuntimeException("Only DRAFT stock adjustment can be updated");
+        }
+
+        Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
+                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+
+        adjust.setWarehouse(warehouse);
+        adjust.setReason(dto.getReason());
+        adjust.setNote(dto.getNote());
+
+        adjustItemRepository.deleteByAdjustmentId(adjust.getId());
+        for (CreateStockAdjustmentDto.AdjustmentItemDto itemDto : dto.getItems()) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            int systemQty = productRepository.calculateOnHandByWarehouseAndProductId(
+                    warehouse.getId(), product.getId());
+            int diffQty = itemDto.getActualQty() - systemQty;
+
+            StockAdjustmentItem item = StockAdjustmentItem.builder()
+                    .adjustment(adjust)
+                    .product(product)
+                    .systemQty(systemQty)
+                    .actualQty(itemDto.getActualQty())
+                    .diffQty(diffQty)
+                    .unitCostSnapshot(product.getAvgCost())
+                    .build();
+
+            adjustItemRepository.save(item);
+        }
+
+        return toResponseDTO(adjustRepository.save(adjust));
+    }
+
+    @Override
+    @Transactional
     public StockAdjustmentResponseDTO completeAdjustment(Long id) {
         StockAdjustment adjust = getAdjustmentById(id);
-        
+
+        if (adjust.getStatus() == DocumentStatus.CANCELLED) {
+            throw new RuntimeException("Cancelled adjustment cannot be completed");
+        }
         if (adjust.getStatus() == DocumentStatus.POSTED) {
             throw new RuntimeException("Adjustment already completed");
         }
@@ -91,32 +137,44 @@ public class StockAdjustmentServiceImpl implements StockAdjustmentService {
         adjust.setStatus(DocumentStatus.POSTED);
         adjustRepository.save(adjust);
 
-        List<StockAdjustmentItem> items = adjustItemRepository.findAll();
-        
+        List<StockAdjustmentItem> items = adjustItemRepository.findByAdjustmentId(adjust.getId());
+
         for (StockAdjustmentItem item : items) {
-            if (item.getAdjustment().getId().equals(adjust.getId())) {
-                Product product = item.getProduct();
-                
-                // Nếu không có khác biệt, bỏ qua
-                if (item.getDiffQty() == 0) continue;
+            Product product = item.getProduct();
 
-                // Inventory Movement (Nếu lệch dương thì IN, lệch âm thì OUT)
-                com.pos.enums.InventoryMovementType type = item.getDiffQty() > 0 ? com.pos.enums.InventoryMovementType.ADJUST_IN : com.pos.enums.InventoryMovementType.ADJUST_OUT;
-                
-                InventoryMovement act = InventoryMovement.builder()
-                        .product(product)
-                        .warehouse(adjust.getWarehouse())
-                        .movementType(type)
-                        .qty(Math.abs(item.getDiffQty())) // Luôn dương để DB Trigger tính TOÁN
-                        .refTable("stock_adjustments")
-                        .refId(adjust.getAdjustNo())
-                        .createdBy(adjust.getCreatedBy())
-                        .build();
-
-                movementRepository.save(act);
+            // Nếu không có khác biệt, bỏ qua
+            if (item.getDiffQty() == 0) {
+                continue;
             }
+
+            com.pos.enums.InventoryMovementType type = item.getDiffQty() > 0
+                    ? com.pos.enums.InventoryMovementType.ADJUST_IN
+                    : com.pos.enums.InventoryMovementType.ADJUST_OUT;
+
+            InventoryMovement act = InventoryMovement.builder()
+                    .product(product)
+                    .warehouse(adjust.getWarehouse())
+                    .movementType(type)
+                    .qty(Math.abs(item.getDiffQty()))
+                    .refTable("stock_adjustments")
+                    .refId(adjust.getAdjustNo())
+                    .createdBy(adjust.getCreatedBy())
+                    .build();
+
+            movementRepository.save(act);
         }
         return toResponseDTO(adjust);
+    }
+
+    private void validateItemList(List<CreateStockAdjustmentDto.AdjustmentItemDto> items) {
+        if (items == null || items.isEmpty()) {
+            throw new RuntimeException("Stock adjustment items are required");
+        }
+        for (CreateStockAdjustmentDto.AdjustmentItemDto itemDto : items) {
+            if (itemDto.getActualQty() == null || itemDto.getActualQty() < 0) {
+                throw new RuntimeException("actualQty must be >= 0");
+            }
+        }
     }
 
     private StockAdjustmentResponseDTO toResponseDTO(StockAdjustment adjust) {

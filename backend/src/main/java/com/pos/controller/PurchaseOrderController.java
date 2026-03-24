@@ -34,6 +34,12 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(poService.createPurchaseOrder(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<PurchaseOrderResponseDTO> updateDraftPO(@PathVariable Long id,
+                                                                   @RequestBody CreatePurchaseOrderDto dto) {
+        return ResponseEntity.ok(poService.updateDraftPurchaseOrder(id, dto));
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<PurchaseOrderResponseDTO> updatePOStatus(@PathVariable Long id, @RequestParam String status) {
         return ResponseEntity.ok(poService.updateStatus(id, status));

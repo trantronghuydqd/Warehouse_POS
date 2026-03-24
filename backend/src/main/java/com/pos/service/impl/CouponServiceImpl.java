@@ -6,6 +6,7 @@ import com.pos.service.CouponService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,12 +17,12 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     public List<Coupon> getAllCoupons() {
-        return couponRepository.findAll();
+        return couponRepository.findByDeletedAtIsNull();
     }
 
     @Override
     public Coupon getCouponById(Long id) {
-        return couponRepository.findById(id)
+        return couponRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new RuntimeException("Coupon not found: " + id));
     }
 
@@ -48,6 +49,7 @@ public class CouponServiceImpl implements CouponService {
     @Override
     public void deleteCoupon(Long id) {
         Coupon coupon = getCouponById(id);
-        couponRepository.delete(coupon);
+        coupon.setDeletedAt(LocalDateTime.now());
+        couponRepository.save(coupon);
     }
 }

@@ -34,6 +34,12 @@ public class GoodsReceiptController {
         return ResponseEntity.ok(grService.createGoodsReceipt(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<GoodsReceiptResponseDTO> updateDraftReceipt(@PathVariable Long id,
+                                                                       @RequestBody CreateGoodsReceiptDto dto) {
+        return ResponseEntity.ok(grService.updateDraftGoodsReceipt(id, dto));
+    }
+
     @PostMapping("/{id}/complete")
     public ResponseEntity<GoodsReceiptResponseDTO> completeReceipt(@PathVariable Long id) {
         return ResponseEntity.ok(grService.completeGoodsReceipt(id));

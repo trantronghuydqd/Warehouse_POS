@@ -34,6 +34,12 @@ public class CustomerReturnController {
         return ResponseEntity.ok(returnService.createCustomerReturn(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<CustomerReturnResponseDTO> updateDraftReturn(@PathVariable Long id,
+                                                                        @RequestBody CreateCustomerReturnDto dto) {
+        return ResponseEntity.ok(returnService.updateDraftCustomerReturn(id, dto));
+    }
+
     @PostMapping("/{id}/complete")
     public ResponseEntity<CustomerReturnResponseDTO> completeReturn(@PathVariable Long id) {
         return ResponseEntity.ok(returnService.completeCustomerReturn(id));

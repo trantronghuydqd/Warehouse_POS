@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,12 +20,12 @@ public class StaffServiceImpl implements StaffService {
 
     @Override
     public List<Staff> getAllStaffs() {
-        return staffRepository.findAll();
+        return staffRepository.findByDeletedAtIsNull();
     }
 
     @Override
     public Staff getStaffById(Long id) {
-        return staffRepository.findById(id)
+        return staffRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new RuntimeException("Staff not found"));
     }
 
@@ -68,6 +69,7 @@ public class StaffServiceImpl implements StaffService {
     @Override
     public void deleteStaff(Long id) {
         Staff staff = getStaffById(id);
-        staffRepository.delete(staff);
+        staff.setDeletedAt(LocalDateTime.now());
+        staffRepository.save(staff);
     }
 }

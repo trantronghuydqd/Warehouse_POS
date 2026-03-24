@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     View,
     Text,
@@ -160,6 +160,11 @@ export const PosScreen = () => {
     const [customerSearchKeyword, setCustomerSearchKeyword] = useState("");
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
 
+    const [couponPreviewLoading, setCouponPreviewLoading] = useState(false);
+    const [couponValid, setCouponValid] = useState<boolean | null>(null);
+    const [couponMessage, setCouponMessage] = useState("");
+    const couponPreviewRequestId = useRef(0);
+
     const filteredCustomers = customers.filter((c) => {
         if (!customerSearchKeyword) return false;
         const kw = customerSearchKeyword.toLowerCase();
@@ -176,6 +181,85 @@ export const PosScreen = () => {
         setIsSearchingCustomer(false);
     };
 
+    const getApiErrorMessage = (error: any): string => {
+        return (
+            error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            error?.message ||
+            "Đã có lỗi xảy ra"
+        );
+    };
+
+    useEffect(() => {
+        const code = couponCode.trim();
+        const grossAmount = getGrossAmount();
+
+        if (!code) {
+            setCoupon("", 0);
+            setCouponValid(null);
+            setCouponMessage("");
+            setCouponPreviewLoading(false);
+            return;
+        }
+
+        if (grossAmount <= 0) {
+            setCoupon(code, 0);
+            setCouponValid(false);
+            setCouponMessage("Giỏ hàng rỗng, chưa thể áp mã giảm giá");
+            setCouponPreviewLoading(false);
+            return;
+        }
+
+        const requestId = ++couponPreviewRequestId.current;
+        setCouponPreviewLoading(true);
+
+        const debounce = setTimeout(async () => {
+            try {
+                const res = await axiosClient.get("/orders/coupon-preview", {
+                    params: {
+                        couponCode: code,
+                        grossAmount,
+                    },
+                });
+
+                if (requestId !== couponPreviewRequestId.current) {
+                    return;
+                }
+
+                const data = res.data;
+                const discount = Number(data?.discountAmount || 0);
+
+                if (data?.valid) {
+                    setCoupon(code, discount);
+                    setCouponValid(true);
+                    setCouponMessage(
+                        `Mã hợp lệ: giảm ${discount.toLocaleString("vi-VN")} đ`,
+                    );
+                } else {
+                    setCoupon(code, 0);
+                    setCouponValid(false);
+                    setCouponMessage(
+                        data?.message || "Mã giảm giá không hợp lệ",
+                    );
+                }
+            } catch (error) {
+                if (requestId !== couponPreviewRequestId.current) {
+                    return;
+                }
+
+                setCoupon(code, 0);
+                setCouponValid(false);
+                setCouponMessage(getApiErrorMessage(error));
+            } finally {
+                if (requestId === couponPreviewRequestId.current) {
+                    setCouponPreviewLoading(false);
+                }
+            }
+        }, 450);
+
+        return () => clearTimeout(debounce);
+    }, [couponCode, cart, getGrossAmount, setCoupon]);
+
     const handleCheckout = async () => {
         if (cart.length === 0) {
             Alert.alert("Lỗi", "Giỏ hàng đang trống!");
@@ -190,12 +274,28 @@ export const PosScreen = () => {
             return;
         }
 
+        if (couponCode.trim()) {
+            if (couponPreviewLoading) {
+                Alert.alert(
+                    "Đang kiểm tra",
+                    "Vui lòng chờ xác thực mã giảm giá",
+                );
+                return;
+            }
+            if (couponValid === false) {
+                Alert.alert(
+                    "Mã giảm giá không hợp lệ",
+                    couponMessage || "Vui lòng kiểm tra lại mã",
+                );
+                return;
+            }
+        }
+
         const payload = {
             customerId: customerId || null,
             warehouseId: warehouseId,
             discountAmount: discountAmount || 0,
             couponCode: couponCode || null,
-            couponDiscountAmount: couponDiscountAmount || 0,
             surchargeAmount: surchargeAmount || 0,
             paymentMethod: paymentMethod,
             note: note || "",
@@ -220,10 +320,7 @@ export const PosScreen = () => {
             fetchProductsByWarehouse();
         } catch (error) {
             console.log("Lỗi thanh toán:", error);
-            Alert.alert(
-                "Lỗi",
-                "Không gởi được Đơn hàng lên Server. Vui lòng thử lại!",
-            );
+            Alert.alert("Lỗi", getApiErrorMessage(error));
         } finally {
             setLoading(false);
         }
@@ -668,22 +765,33 @@ export const PosScreen = () => {
                         {/* Coupon Code */}
                         <View style={styles.modifierRow}>
                             <Text style={styles.modifierLabel}>
-                                Mã giảm (+%):
+                                Mã giảm giá:
                             </Text>
                             <TextInput
                                 style={styles.numericInput}
                                 placeholder="Nhập mã..."
                                 value={couponCode}
                                 onChangeText={(val) => {
-                                    setCoupon(
-                                        val,
-                                        val === "VIP10"
-                                            ? getGrossAmount() * 0.1
-                                            : 0,
-                                    ); // Demo code VIP10 giảm 10%
+                                    setCoupon(val, 0);
                                 }}
                             />
                         </View>
+                        {couponCode.trim().length > 0 && (
+                            <Text
+                                style={[
+                                    styles.couponMessage,
+                                    couponValid === true &&
+                                        styles.couponMessageValid,
+                                    couponValid === false &&
+                                        styles.couponMessageInvalid,
+                                ]}
+                            >
+                                {couponPreviewLoading
+                                    ? "Đang kiểm tra mã giảm giá..."
+                                    : couponMessage ||
+                                      `Giảm ${couponDiscountAmount.toLocaleString("vi-VN")} đ`}
+                            </Text>
+                        )}
                         {/* Phụ phí */}
                         <View style={styles.modifierRow}>
                             <Text style={styles.modifierLabel}>
@@ -790,10 +898,7 @@ export const PosScreen = () => {
                         >
                             -{" "}
                             {(
-                                discountAmount +
-                                (couponCode === "VIP10"
-                                    ? getGrossAmount() * 0.1
-                                    : 0)
+                                discountAmount + couponDiscountAmount
                             ).toLocaleString("vi-VN")}{" "}
                             đ
                         </Text>
@@ -1302,6 +1407,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         backgroundColor: "#fff",
         textAlign: "right",
+    },
+    couponMessage: {
+        fontSize: 12,
+        color: theme.colors.mutedForeground,
+        marginTop: -2,
+    },
+    couponMessageValid: {
+        color: theme.colors.primary,
+    },
+    couponMessageInvalid: {
+        color: theme.colors.error,
     },
 
     paymentMethodRow: {

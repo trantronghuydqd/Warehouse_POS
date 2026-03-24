@@ -1,5 +1,6 @@
 package com.pos.controller;
 
+import com.pos.dto.CouponPreviewResponseDTO;
 import com.pos.dto.OrderRequestDTO;
 import com.pos.dto.OrderResponseDTO;
 import com.pos.dto.OrderItemDetailDTO;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -25,14 +27,20 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
-    @GetMapping("/{id}/items")
+    @GetMapping("/{id:\\d+}/items")
     public ResponseEntity<List<OrderItemDetailDTO>> getOrderItems(@PathVariable Long id) {
         return ResponseEntity.ok(orderService.getOrderItems(id));
+    }
+
+    @GetMapping("/coupon-preview")
+    public ResponseEntity<CouponPreviewResponseDTO> previewCoupon(@RequestParam String couponCode,
+                                                                   @RequestParam BigDecimal grossAmount) {
+        return ResponseEntity.ok(orderService.previewCoupon(couponCode, grossAmount));
     }
 
     @PostMapping

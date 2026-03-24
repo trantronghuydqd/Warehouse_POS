@@ -6,6 +6,7 @@ import com.pos.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,12 +17,12 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
+        return categoryRepository.findByDeletedAtIsNull();
     }
 
     @Override
     public Category getCategoryById(Long id) {
-        return categoryRepository.findById(id)
+        return categoryRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
     }
 
@@ -42,6 +43,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void deleteCategory(Long id) {
         Category category = getCategoryById(id);
-        categoryRepository.delete(category);
+        category.setDeletedAt(LocalDateTime.now());
+        categoryRepository.save(category);
     }
 }

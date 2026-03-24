@@ -6,6 +6,7 @@ import com.pos.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,12 +18,12 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public List<Customer> getAllCustomers() {
-        return customerRepository.findAll();
+        return customerRepository.findByDeletedAtIsNull();
     }
 
     @Override
     public Customer getCustomerById(UUID id) {
-        return customerRepository.findById(id)
+        return customerRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
     }
 
@@ -47,6 +48,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public void deleteCustomer(UUID id) {
         Customer customer = getCustomerById(id);
-        customerRepository.delete(customer);
+        customer.setDeletedAt(LocalDateTime.now());
+        customerRepository.save(customer);
     }
 }

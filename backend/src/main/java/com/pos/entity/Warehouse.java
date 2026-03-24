@@ -3,6 +3,8 @@ package com.pos.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "warehouse")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -22,4 +24,7 @@ public class Warehouse {
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

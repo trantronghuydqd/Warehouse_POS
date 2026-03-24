@@ -12,7 +12,6 @@ public class OrderRequestDTO {
     private Long warehouseId;
     private BigDecimal discountAmount;
     private String couponCode;
-    private BigDecimal couponDiscountAmount;
     private BigDecimal surchargeAmount;
     private PaymentMethod paymentMethod;
     private String note;

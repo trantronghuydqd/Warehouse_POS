@@ -34,6 +34,12 @@ public class SupplierReturnController {
         return ResponseEntity.ok(srService.createSupplierReturn(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<SupplierReturnResponseDTO> updateDraftReturn(@PathVariable Long id,
+                                                                        @RequestBody CreateSupplierReturnDto dto) {
+        return ResponseEntity.ok(srService.updateDraftSupplierReturn(id, dto));
+    }
+
     @PostMapping("/{id}/complete")
     public ResponseEntity<SupplierReturnResponseDTO> completeReturn(@PathVariable Long id) {
         return ResponseEntity.ok(srService.completeSupplierReturn(id));

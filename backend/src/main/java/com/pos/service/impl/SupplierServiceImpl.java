@@ -6,6 +6,7 @@ import com.pos.service.SupplierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,12 +18,12 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     public List<Supplier> getAllSuppliers() {
-        return supplierRepository.findAll();
+        return supplierRepository.findByDeletedAtIsNull();
     }
 
     @Override
     public Supplier getSupplierById(UUID id) {
-        return supplierRepository.findById(id)
+        return supplierRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new RuntimeException("Supplier not found"));
     }
 
@@ -46,6 +47,7 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     public void deleteSupplier(UUID id) {
         Supplier supplier = getSupplierById(id);
-        supplierRepository.delete(supplier);
+        supplier.setDeletedAt(LocalDateTime.now());
+        supplierRepository.save(supplier);
     }
 }

@@ -6,6 +6,7 @@ import com.pos.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,12 +17,12 @@ public class WarehouseServiceImpl implements WarehouseService {
 
     @Override
     public List<Warehouse> getAllWarehouses() {
-        return warehouseRepository.findAll();
+        return warehouseRepository.findByDeletedAtIsNull();
     }
 
     @Override
     public Warehouse getWarehouseById(Long id) {
-        return warehouseRepository.findById(id)
+        return warehouseRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new RuntimeException("Warehouse not found: " + id));
     }
 
@@ -38,5 +39,12 @@ public class WarehouseServiceImpl implements WarehouseService {
         warehouse.setAddress(warehouseDetails.getAddress());
         warehouse.setIsActive(warehouseDetails.getIsActive());
         return warehouseRepository.save(warehouse);
+    }
+
+    @Override
+    public void deleteWarehouse(Long id) {
+        Warehouse warehouse = getWarehouseById(id);
+        warehouse.setDeletedAt(LocalDateTime.now());
+        warehouseRepository.save(warehouse);
     }
 }

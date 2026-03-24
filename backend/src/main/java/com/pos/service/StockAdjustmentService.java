@@ -10,5 +10,6 @@ public interface StockAdjustmentService {
     List<StockAdjustment> getAllAdjustments();
     StockAdjustment getAdjustmentById(Long id);
     StockAdjustmentResponseDTO createAdjustment(CreateStockAdjustmentDto dto);
+    StockAdjustmentResponseDTO updateDraftAdjustment(Long id, CreateStockAdjustmentDto dto);
     StockAdjustmentResponseDTO completeAdjustment(Long id);
 }

@@ -10,5 +10,6 @@ public interface GoodsReceiptService {
     List<GoodsReceipt> getAllGoodsReceipts();
     GoodsReceipt getGoodsReceiptById(Long id);
     GoodsReceiptResponseDTO createGoodsReceipt(CreateGoodsReceiptDto dto);
+    GoodsReceiptResponseDTO updateDraftGoodsReceipt(Long id, CreateGoodsReceiptDto dto);
     GoodsReceiptResponseDTO completeGoodsReceipt(Long id);
 }

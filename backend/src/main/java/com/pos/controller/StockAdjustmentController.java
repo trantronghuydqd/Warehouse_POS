@@ -34,6 +34,12 @@ public class StockAdjustmentController {
         return ResponseEntity.ok(adjustService.createAdjustment(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<StockAdjustmentResponseDTO> updateDraftAdjustment(@PathVariable Long id,
+                                                                             @RequestBody CreateStockAdjustmentDto dto) {
+        return ResponseEntity.ok(adjustService.updateDraftAdjustment(id, dto));
+    }
+
     @PostMapping("/{id}/complete")
     public ResponseEntity<StockAdjustmentResponseDTO> completeAdjustment(@PathVariable Long id) {
         return ResponseEntity.ok(adjustService.completeAdjustment(id));

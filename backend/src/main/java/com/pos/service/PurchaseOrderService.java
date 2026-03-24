@@ -10,5 +10,6 @@ public interface PurchaseOrderService {
     List<PurchaseOrder> getAllPurchaseOrders();
     PurchaseOrder getPurchaseOrderById(Long id);
     PurchaseOrderResponseDTO createPurchaseOrder(CreatePurchaseOrderDto dto);
+    PurchaseOrderResponseDTO updateDraftPurchaseOrder(Long id, CreatePurchaseOrderDto dto);
     PurchaseOrderResponseDTO updateStatus(Long id, String newStatus);
 }

@@ -34,6 +34,9 @@ public class Staff {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Column(unique = true, nullable = false)
     private String username;
 

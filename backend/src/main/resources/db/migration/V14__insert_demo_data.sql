@@ -213,3 +213,8 @@ INSERT INTO stock_adjustment_items (adjustment_id, product_id, system_qty, actua
 -- Movement cho adjustment đã POSTED: ADJUST_OUT cho 2 chai Amino Acid bị thiếu
 INSERT INTO inventory_movements (product_id, warehouse_id, movement_type, qty, ref_table, ref_id, created_by) VALUES
 ((SELECT id FROM products WHERE sku = 'AA-LEAF'), 1, 'ADJUST_OUT', 2, 'stock_adjustments', 'SA-SEED-001', 1);
+
+-- Normalize historical order status to DocumentStatus
+UPDATE orders
+SET status = 'POSTED'
+WHERE status = 'COMPLETED';

@@ -2,7 +2,8 @@ CREATE TABLE categories (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE customers (
@@ -14,6 +15,7 @@ CREATE TABLE customers (
     tax_code VARCHAR(50),
     address TEXT,
     is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -27,6 +29,7 @@ CREATE TABLE staff (
     address TEXT,
     hire_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP,
     username VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
@@ -41,7 +44,8 @@ CREATE TABLE suppliers (
     phone VARCHAR(20),
     tax_code VARCHAR(50),
     address TEXT,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE products (
@@ -57,6 +61,7 @@ CREATE TABLE products (
     vat_rate DECIMAL(5, 2) DEFAULT 0,
     image_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -66,7 +71,8 @@ CREATE TABLE warehouse (
     code VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
     address TEXT,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE coupons (
@@ -81,5 +87,6 @@ CREATE TABLE coupons (
     usage_limit INT,
     used_count INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
+    deleted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

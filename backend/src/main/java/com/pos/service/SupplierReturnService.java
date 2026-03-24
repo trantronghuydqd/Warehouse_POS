@@ -9,5 +9,6 @@ public interface SupplierReturnService {
     List<SupplierReturn> getAllSupplierReturns();
     SupplierReturn getSupplierReturnById(Long id);
     SupplierReturnResponseDTO createSupplierReturn(CreateSupplierReturnDto dto);
+    SupplierReturnResponseDTO updateDraftSupplierReturn(Long id, CreateSupplierReturnDto dto);
     SupplierReturnResponseDTO completeSupplierReturn(Long id);
 }

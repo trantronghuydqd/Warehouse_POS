@@ -43,6 +43,8 @@ public class CustomerReturnServiceImpl implements CustomerReturnService {
     @Override
     @Transactional
     public CustomerReturnResponseDTO createCustomerReturn(CreateCustomerReturnDto dto) {
+        validateItemList(dto.getItems());
+
         Customer customer = customerRepository.findById(UUID.fromString(dto.getCustomerId()))
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
         Staff staff = staffRepository.findById(dto.getCreatedByStaffId())
@@ -56,10 +58,7 @@ public class CustomerReturnServiceImpl implements CustomerReturnService {
         Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
                 .orElseThrow(() -> new RuntimeException("Warehouse not found"));
 
-        BigDecimal totalRefund = BigDecimal.ZERO;
-        for (CreateCustomerReturnDto.ReturnItemDto itemDto : dto.getItems()) {
-            totalRefund = totalRefund.add(itemDto.getRefundAmount());
-        }
+        BigDecimal totalRefund = calculateTotalRefund(dto.getItems());
 
         CustomerReturn cr = CustomerReturn.builder()
                 .customer(customer)
@@ -101,9 +100,63 @@ public class CustomerReturnServiceImpl implements CustomerReturnService {
 
     @Override
     @Transactional
+    public CustomerReturnResponseDTO updateDraftCustomerReturn(Long id, CreateCustomerReturnDto dto) {
+        validateItemList(dto.getItems());
+
+        CustomerReturn cr = getCustomerReturnById(id);
+        if (cr.getStatus() != DocumentStatus.DRAFT) {
+            throw new RuntimeException("Only DRAFT customer return can be updated");
+        }
+
+        Customer customer = customerRepository.findById(UUID.fromString(dto.getCustomerId()))
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        Order order = null;
+        if (dto.getOrderId() != null) {
+            order = orderRepository.findById(dto.getOrderId()).orElse(null);
+        }
+
+        Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
+                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+
+        cr.setCustomer(customer);
+        cr.setOrder(order);
+        cr.setWarehouse(warehouse);
+        cr.setNote(dto.getNote());
+        cr.setTotalRefund(calculateTotalRefund(dto.getItems()));
+
+        crItemRepository.deleteByCustomerReturnId(cr.getId());
+        for (CreateCustomerReturnDto.ReturnItemDto itemDto : dto.getItems()) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            OrderItem orderItem = null;
+            if (itemDto.getOrderItemId() != null) {
+                orderItem = orderItemRepository.findById(itemDto.getOrderItemId()).orElse(null);
+            }
+
+            CustomerReturnItem item = CustomerReturnItem.builder()
+                    .customerReturn(cr)
+                    .orderItem(orderItem)
+                    .product(product)
+                    .qty(itemDto.getQty())
+                    .refundAmount(itemDto.getRefundAmount())
+                    .build();
+
+            crItemRepository.save(item);
+        }
+
+        return toResponseDTO(crRepository.save(cr));
+    }
+
+    @Override
+    @Transactional
     public CustomerReturnResponseDTO completeCustomerReturn(Long id) {
         CustomerReturn cr = getCustomerReturnById(id);
-        
+
+        if (cr.getStatus() == DocumentStatus.CANCELLED) {
+            throw new RuntimeException("Cancelled return cannot be completed");
+        }
         if (cr.getStatus() == DocumentStatus.POSTED) {
             throw new RuntimeException("Return already completed");
         }
@@ -111,32 +164,46 @@ public class CustomerReturnServiceImpl implements CustomerReturnService {
         cr.setStatus(DocumentStatus.POSTED);
         crRepository.save(cr);
 
-        List<CustomerReturnItem> items = crItemRepository.findAll();
-        
+        List<CustomerReturnItem> items = crItemRepository.findByCustomerReturnId(cr.getId());
+
         for (CustomerReturnItem item : items) {
-            if (item.getCustomerReturn().getId().equals(cr.getId())) {
-                Product product = item.getProduct();
-                
-                // Khách trả hàng -> Hàng nhập lại vào kho
-                // Ghi chú: Có thể tính lại Moving Average nếu muốn, nhưng thông thường hàng trả lại 
-                // giữ nguyên hoặc lấy lại avgCost cũ. Ở MVP này tạm thời giữ nguyên giá avgCost.
-                // productRepository.save(product); // Tồn kho do DB Trigger tự động Update
+            Product product = item.getProduct();
 
-                // Inventory Movement
-                InventoryMovement act = InventoryMovement.builder()
-                        .product(product)
-                        .warehouse(cr.getWarehouse()) // Dùng kho đã gắn vào phiếu
-                        .movementType(com.pos.enums.InventoryMovementType.RETURN_IN) // IN vì hàng từ tay KH quay về KHO
-                        .qty(item.getQty()) 
-                        .refTable("customer_returns")
-                        .refId(cr.getReturnNo())
-                        .createdBy(cr.getCreatedBy())
-                        .build();
+            InventoryMovement act = InventoryMovement.builder()
+                    .product(product)
+                    .warehouse(cr.getWarehouse())
+                    .movementType(com.pos.enums.InventoryMovementType.RETURN_IN)
+                    .qty(item.getQty())
+                    .refTable("customer_returns")
+                    .refId(cr.getReturnNo())
+                    .createdBy(cr.getCreatedBy())
+                    .build();
 
-                movementRepository.save(act);
-            }
+            movementRepository.save(act);
         }
         return toResponseDTO(cr);
+    }
+
+    private void validateItemList(List<CreateCustomerReturnDto.ReturnItemDto> items) {
+        if (items == null || items.isEmpty()) {
+            throw new RuntimeException("Customer return items are required");
+        }
+        for (CreateCustomerReturnDto.ReturnItemDto itemDto : items) {
+            if (itemDto.getQty() == null || itemDto.getQty() <= 0) {
+                throw new RuntimeException("qty must be greater than 0");
+            }
+            if (itemDto.getRefundAmount() == null || itemDto.getRefundAmount().compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("refundAmount must be >= 0");
+            }
+        }
+    }
+
+    private BigDecimal calculateTotalRefund(List<CreateCustomerReturnDto.ReturnItemDto> items) {
+        BigDecimal totalRefund = BigDecimal.ZERO;
+        for (CreateCustomerReturnDto.ReturnItemDto itemDto : items) {
+            totalRefund = totalRefund.add(itemDto.getRefundAmount());
+        }
+        return totalRefund;
     }
 
     private CustomerReturnResponseDTO toResponseDTO(CustomerReturn cr) {

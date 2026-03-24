@@ -10,5 +10,6 @@ public interface CustomerReturnService {
     List<CustomerReturn> getAllCustomerReturns();
     CustomerReturn getCustomerReturnById(Long id);
     CustomerReturnResponseDTO createCustomerReturn(CreateCustomerReturnDto dto);
+    CustomerReturnResponseDTO updateDraftCustomerReturn(Long id, CreateCustomerReturnDto dto);
     CustomerReturnResponseDTO completeCustomerReturn(Long id);
 }

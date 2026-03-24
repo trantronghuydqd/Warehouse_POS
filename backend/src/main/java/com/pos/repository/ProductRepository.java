@@ -11,6 +11,10 @@ import java.util.List;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+	List<Product> findByDeletedAtIsNull();
+
+	java.util.Optional<Product> findByIdAndDeletedAtIsNull(Long id);
+
 	interface ProductStockByWarehouseProjection {
 		Long getId();
 		String getSku();
@@ -40,7 +44,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 			LEFT JOIN inventory_balance ib
 				ON ib.product_id = p.id
 			   AND ib.warehouse_id = :warehouseId
-			WHERE p.is_active = TRUE
+			WHERE p.deleted_at IS NULL
+			  AND p.is_active = TRUE
 			ORDER BY p.name
 			""", nativeQuery = true)
 	List<ProductStockByWarehouseProjection> findStockByWarehouseId(@Param("warehouseId") Long warehouseId);
