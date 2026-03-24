@@ -20,6 +20,5 @@ CREATE TABLE purchase_order_items (
     product_id BIGINT REFERENCES products(id) NOT NULL,
     ordered_qty INT NOT NULL,
     expected_unit_cost DECIMAL(15, 2) NOT NULL,
-    line_total DECIMAL(15, 2) NOT NULL,
-    CONSTRAINT uq_po_product UNIQUE (po_id, product_id)
+    line_total DECIMAL(15, 2) NOT NULL
 );
