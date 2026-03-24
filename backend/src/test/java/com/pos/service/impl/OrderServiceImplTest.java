@@ -6,7 +6,6 @@ import com.pos.dto.OrderRequestDTO;
 import com.pos.dto.OrderResponseDTO;
 import com.pos.entity.Coupon;
 import com.pos.entity.Order;
-import com.pos.entity.OrderItem;
 import com.pos.entity.Product;
 import com.pos.entity.Staff;
 import com.pos.entity.Warehouse;
